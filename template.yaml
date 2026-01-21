@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
   Saverr API Infrastructure
@@ -374,7 +374,7 @@ Resources:
     Properties:
       RoleName: !Sub saverr-lambda-role-${Environment}
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -386,7 +386,7 @@ Resources:
       Policies:
         - PolicyName: DynamoDBAccess
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -408,7 +408,7 @@ Resources:
                   - !Sub ${TransactionsTable.Arn}/index/*
         - PolicyName: SecretsManagerAccess
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -416,7 +416,7 @@ Resources:
                 Resource: !Ref PlaidSecretArn
         - PolicyName: CognitoAccess
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -426,7 +426,7 @@ Resources:
                 Resource: !GetAtt CognitoUserPool.Arn
         - PolicyName: BedrockAccess
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:

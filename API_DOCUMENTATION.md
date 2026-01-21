@@ -22,9 +22,11 @@ Authorization: Bearer <jwt_token>
 ### Authentication Endpoints
 
 #### POST /auth/login
+
 Authenticate a user and receive access tokens.
 
 **Request:**
+
 ```json
 {
   "email": "user@example.com",
@@ -33,6 +35,7 @@ Authenticate a user and receive access tokens.
 ```
 
 **Response:**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
@@ -47,9 +50,11 @@ Authenticate a user and receive access tokens.
 ```
 
 #### POST /auth/refresh
+
 Refresh an expired access token.
 
 **Request:**
+
 ```json
 {
   "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
@@ -61,9 +66,11 @@ Refresh an expired access token.
 ## Banking APIs
 
 ### GET /accounts
+
 Fetch all linked bank accounts for the authenticated user.
 
 **Response:**
+
 ```json
 {
   "accounts": [
@@ -84,12 +91,15 @@ Fetch all linked bank accounts for the authenticated user.
 ```
 
 ### GET /accounts/{account_id}
+
 Fetch details for a specific account.
 
 **Path Parameters:**
+
 - `account_id` (required): UUID of the account
 
 **Response:**
+
 ```json
 {
   "id": "uuid",
@@ -106,12 +116,15 @@ Fetch details for a specific account.
 ```
 
 ### GET /accounts/{account_id}/transactions
+
 Fetch transactions for a specific account.
 
 **Path Parameters:**
+
 - `account_id` (required): UUID of the account
 
 **Query Parameters:**
+
 - `start_date` (optional): ISO 8601 date string
 - `end_date` (optional): ISO 8601 date string
 - `limit` (optional): Number of transactions (default: 50, max: 500)
@@ -119,6 +132,7 @@ Fetch transactions for a specific account.
 - `category` (optional): Filter by category name
 
 **Response:**
+
 ```json
 {
   "transactions": [
@@ -142,9 +156,11 @@ Fetch transactions for a specific account.
 ```
 
 ### POST /accounts/link
+
 Initiate account linking process (integrates with Plaid or similar service).
 
 **Request:**
+
 ```json
 {
   "institution_id": "ins_3",
@@ -153,6 +169,7 @@ Initiate account linking process (integrates with Plaid or similar service).
 ```
 
 **Response:**
+
 ```json
 {
   "account": {
@@ -170,16 +187,19 @@ Initiate account linking process (integrates with Plaid or similar service).
 ```
 
 ### POST /accounts/link-token
+
 Create a Plaid Link token for initializing Plaid Link on the client.
 
 **Request:**
+
 ```json
 {
-  "access_token": "access-sandbox-xxx"  // Optional: for update mode only
+  "access_token": "access-sandbox-xxx" // Optional: for update mode only
 }
 ```
 
 **Response:**
+
 ```json
 {
   "link_token": "link-sandbox-af1a0311-da53-4636-b754-dd15cc058176",
@@ -189,16 +209,20 @@ Create a Plaid Link token for initializing Plaid Link on the client.
 ```
 
 ### POST /accounts/{account_id}/sync
+
 Sync transactions from Plaid for a specific account.
 
 **Path Parameters:**
+
 - `account_id` (required): UUID of the account
 
 **Query Parameters:**
+
 - `days` (optional): Number of days to sync (default: 30, max: 730)
 - `use_sync` (optional): Use /transactions/sync API (default: true)
 
 **Response:**
+
 ```json
 {
   "synced": 150,
@@ -211,12 +235,15 @@ Sync transactions from Plaid for a specific account.
 ```
 
 ### DELETE /accounts/{account_id}
+
 Unlink a bank account.
 
 **Path Parameters:**
+
 - `account_id` (required): UUID of the account
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -225,15 +252,18 @@ Unlink a bank account.
 ```
 
 ### POST /accounts/{account_id}/refresh
+
 Refresh account balance and transactions.
 
 **Path Parameters:**
+
 - `account_id` (required): UUID of the account
 
 **Response:**
+
 ```json
 {
-  "balance": 4678.90,
+  "balance": 4678.9,
   "last_updated": "2026-01-21T11:00:00Z"
 }
 ```
@@ -243,9 +273,11 @@ Refresh account balance and transactions.
 ## AI Chat APIs
 
 ### POST /chat/message
+
 Send a message to the AI financial advisor.
 
 **Request:**
+
 ```json
 {
   "message": "How can I save more money each month?",
@@ -268,6 +300,7 @@ Send a message to the AI financial advisor.
 ```
 
 **Response:**
+
 ```json
 {
   "response": {
@@ -285,9 +318,11 @@ Send a message to the AI financial advisor.
 ```
 
 ### POST /chat/generate-plan
+
 Generate a personalized financial plan based on chat context.
 
 **Request:**
+
 ```json
 {
   "context": [
@@ -304,6 +339,7 @@ Generate a personalized financial plan based on chat context.
 ```
 
 **Response:**
+
 ```json
 {
   "plan": {
@@ -331,9 +367,11 @@ Generate a personalized financial plan based on chat context.
 ```
 
 ### POST /chat/suggest-goals
+
 Get AI-suggested goals based on transaction history.
 
 **Request:**
+
 ```json
 {
   "date_range": {
@@ -344,6 +382,7 @@ Get AI-suggested goals based on transaction history.
 ```
 
 **Response:**
+
 ```json
 {
   "suggested_goals": [
@@ -364,42 +403,48 @@ Get AI-suggested goals based on transaction history.
 ## Analytics APIs
 
 ### GET /analytics/cash-flow
+
 Get cash flow data for visualizations.
 
 **Query Parameters:**
+
 - `start_date` (required): ISO 8601 date string
 - `end_date` (required): ISO 8601 date string
 - `granularity` (optional): "daily" | "weekly" | "monthly" (default: "daily")
 
 **Response:**
+
 ```json
 {
   "inflows": [
     {
       "date": "2026-01-01",
-      "amount": 3500.00
+      "amount": 3500.0
     }
   ],
   "outflows": [
     {
       "date": "2026-01-01",
-      "amount": 150.00
+      "amount": 150.0
     }
   ],
-  "net_flow": 2300.00,
-  "total_inflow": 7000.00,
-  "total_outflow": 4700.00
+  "net_flow": 2300.0,
+  "total_inflow": 7000.0,
+  "total_outflow": 4700.0
 }
 ```
 
 ### GET /analytics/spending-by-category
+
 Get spending breakdown by category.
 
 **Query Parameters:**
+
 - `start_date` (required): ISO 8601 date string
 - `end_date` (required): ISO 8601 date string
 
 **Response:**
+
 ```json
 {
   "categories": [
@@ -407,33 +452,36 @@ Get spending breakdown by category.
       "category_name": "Food & Dining",
       "icon_name": "fork.knife",
       "color_hex": "#FF6B6B",
-      "amount": 485.50,
+      "amount": 485.5,
       "percentage": 0.27,
       "transaction_count": 23
     }
   ],
-  "total_spending": 1800.00
+  "total_spending": 1800.0
 }
 ```
 
 ### GET /analytics/budget-comparison
+
 Get budget vs actual spending comparison.
 
 **Query Parameters:**
+
 - `month` (required): "YYYY-MM" format string
 
 **Response:**
+
 ```json
 {
-  "budgeted": 2000.00,
-  "actual": 1850.00,
+  "budgeted": 2000.0,
+  "actual": 1850.0,
   "is_over_budget": false,
   "percent_used": 0.925,
   "by_category": [
     {
       "category_name": "Food & Dining",
-      "budgeted": 500.00,
-      "actual": 485.50,
+      "budgeted": 500.0,
+      "actual": 485.5,
       "is_over_budget": false
     }
   ]
@@ -441,9 +489,11 @@ Get budget vs actual spending comparison.
 ```
 
 ### GET /analytics/savings-progress
+
 Get progress on all savings goals.
 
 **Response:**
+
 ```json
 {
   "goals": [
@@ -472,13 +522,16 @@ Get progress on all savings goals.
 ## Goals APIs
 
 ### GET /goals
+
 Fetch all financial goals.
 
 **Query Parameters:**
+
 - `status` (optional): "active" | "completed" | "all" (default: "active")
 - `category` (optional): Filter by goal category
 
 **Response:**
+
 ```json
 {
   "goals": [
@@ -486,8 +539,8 @@ Fetch all financial goals.
       "id": "uuid",
       "title": "Emergency Fund",
       "description": "Build a 3-month safety net",
-      "target_amount": 6000.00,
-      "current_amount": 2400.00,
+      "target_amount": 6000.0,
+      "current_amount": 2400.0,
       "target_date": "2026-07-01",
       "created_at": "2026-01-01T00:00:00Z",
       "category": "emergency",
@@ -500,9 +553,11 @@ Fetch all financial goals.
 ```
 
 ### POST /goals
+
 Create a new financial goal.
 
 **Request:**
+
 ```json
 {
   "title": "Vacation Fund",
@@ -515,6 +570,7 @@ Create a new financial goal.
 ```
 
 **Response:**
+
 ```json
 {
   "goal": {
@@ -534,12 +590,15 @@ Create a new financial goal.
 ```
 
 ### PUT /goals/{goal_id}
+
 Update an existing goal.
 
 **Path Parameters:**
+
 - `goal_id` (required): UUID of the goal
 
 **Request:**
+
 ```json
 {
   "title": "Vacation Fund - Japan 2027",
@@ -548,6 +607,7 @@ Update an existing goal.
 ```
 
 **Response:**
+
 ```json
 {
   "goal": {
@@ -560,12 +620,15 @@ Update an existing goal.
 ```
 
 ### DELETE /goals/{goal_id}
+
 Delete a goal.
 
 **Path Parameters:**
+
 - `goal_id` (required): UUID of the goal
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -574,30 +637,34 @@ Delete a goal.
 ```
 
 ### POST /goals/{goal_id}/contribute
+
 Add a contribution to a goal.
 
 **Path Parameters:**
+
 - `goal_id` (required): UUID of the goal
 
 **Request:**
+
 ```json
 {
-  "amount": 100.00,
+  "amount": 100.0,
   "note": "Weekly savings contribution"
 }
 ```
 
 **Response:**
+
 ```json
 {
   "goal": {
     "id": "uuid",
-    "current_amount": 850.00,
+    "current_amount": 850.0,
     "progress": 0.17
   },
   "contribution": {
     "id": "uuid",
-    "amount": 100.00,
+    "amount": 100.0,
     "date": "2026-01-21T10:00:00Z",
     "note": "Weekly savings contribution"
   }
@@ -609,12 +676,15 @@ Add a contribution to a goal.
 ## Financial Plan APIs
 
 ### GET /plans
+
 Get all financial plans (usually just the active one).
 
 **Query Parameters:**
+
 - `active_only` (optional): boolean (default: true)
 
 **Response:**
+
 ```json
 {
   "plans": [
@@ -634,25 +704,26 @@ Get all financial plans (usually just the active one).
 ```
 
 ### POST /plans
+
 Create a new financial plan (typically from AI chat).
 
 **Request:**
+
 ```json
 {
   "summary": "Based on your financial profile...",
-  "recommendations": [
-    "Build emergency fund",
-    "Reduce spending"
-  ],
+  "recommendations": ["Build emergency fund", "Reduce spending"],
   "monthly_target_savings": 500,
   "goal_ids": ["uuid1", "uuid2"]
 }
 ```
 
 ### PUT /plans/{plan_id}/deactivate
+
 Deactivate a plan.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -680,15 +751,15 @@ All endpoints may return error responses in this format:
 
 ### Common Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `UNAUTHORIZED` | 401 | Invalid or expired authentication token |
-| `FORBIDDEN` | 403 | User doesn't have permission |
-| `NOT_FOUND` | 404 | Requested resource not found |
-| `VALIDATION_ERROR` | 400 | Invalid request data |
-| `RATE_LIMITED` | 429 | Too many requests |
-| `INTERNAL_ERROR` | 500 | Server error |
-| `SERVICE_UNAVAILABLE` | 503 | External service (bank API) unavailable |
+| Code                  | HTTP Status | Description                             |
+| --------------------- | ----------- | --------------------------------------- |
+| `UNAUTHORIZED`        | 401         | Invalid or expired authentication token |
+| `FORBIDDEN`           | 403         | User doesn't have permission            |
+| `NOT_FOUND`           | 404         | Requested resource not found            |
+| `VALIDATION_ERROR`    | 400         | Invalid request data                    |
+| `RATE_LIMITED`        | 429         | Too many requests                       |
+| `INTERNAL_ERROR`      | 500         | Server error                            |
+| `SERVICE_UNAVAILABLE` | 503         | External service (bank API) unavailable |
 
 ---
 
@@ -724,12 +795,14 @@ For real-time updates, the API supports webhooks for:
 ## Data Types
 
 ### Account Types
+
 - `checking`
 - `savings`
 - `credit`
 - `investment`
 
 ### Goal Categories
+
 - `savings`
 - `debt_payoff`
 - `emergency`
@@ -740,6 +813,7 @@ For real-time updates, the API supports webhooks for:
 - `custom`
 
 ### Message Types
+
 - `text`
 - `goal_suggestion`
 - `budget_advice`

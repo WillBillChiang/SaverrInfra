@@ -89,56 +89,62 @@ SaverrInfra/
 ## API Endpoints
 
 ### Authentication (No auth required)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/auth/signup` | Register new user |
-| POST | `/auth/confirm` | Confirm email |
-| POST | `/auth/login` | Login and get tokens |
-| POST | `/auth/refresh` | Refresh access token |
-| POST | `/auth/forgot-password` | Request password reset |
-| POST | `/auth/reset-password` | Complete password reset |
+
+| Method | Endpoint                | Description             |
+| ------ | ----------------------- | ----------------------- |
+| POST   | `/auth/signup`          | Register new user       |
+| POST   | `/auth/confirm`         | Confirm email           |
+| POST   | `/auth/login`           | Login and get tokens    |
+| POST   | `/auth/refresh`         | Refresh access token    |
+| POST   | `/auth/forgot-password` | Request password reset  |
+| POST   | `/auth/reset-password`  | Complete password reset |
 
 ### Accounts (Auth required)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/accounts` | List all accounts |
-| GET | `/accounts/{id}` | Get account details |
-| POST | `/accounts/link` | Link new bank account |
-| DELETE | `/accounts/{id}` | Unlink account |
-| POST | `/accounts/{id}/refresh` | Refresh account data |
-| GET | `/accounts/{id}/transactions` | Get transactions |
+
+| Method | Endpoint                      | Description           |
+| ------ | ----------------------------- | --------------------- |
+| GET    | `/accounts`                   | List all accounts     |
+| GET    | `/accounts/{id}`              | Get account details   |
+| POST   | `/accounts/link`              | Link new bank account |
+| DELETE | `/accounts/{id}`              | Unlink account        |
+| POST   | `/accounts/{id}/refresh`      | Refresh account data  |
+| GET    | `/accounts/{id}/transactions` | Get transactions      |
 
 ### Goals (Auth required)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/goals` | List all goals |
-| POST | `/goals` | Create new goal |
-| GET | `/goals/{id}` | Get goal details |
-| PUT | `/goals/{id}` | Update goal |
-| DELETE | `/goals/{id}` | Delete goal |
-| POST | `/goals/{id}/contribute` | Add contribution |
+
+| Method | Endpoint                 | Description      |
+| ------ | ------------------------ | ---------------- |
+| GET    | `/goals`                 | List all goals   |
+| POST   | `/goals`                 | Create new goal  |
+| GET    | `/goals/{id}`            | Get goal details |
+| PUT    | `/goals/{id}`            | Update goal      |
+| DELETE | `/goals/{id}`            | Delete goal      |
+| POST   | `/goals/{id}/contribute` | Add contribution |
 
 ### Plans (Auth required)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/plans` | List financial plans |
-| POST | `/plans` | Create new plan |
-| PUT | `/plans/{id}/deactivate` | Deactivate plan |
+
+| Method | Endpoint                 | Description          |
+| ------ | ------------------------ | -------------------- |
+| GET    | `/plans`                 | List financial plans |
+| POST   | `/plans`                 | Create new plan      |
+| PUT    | `/plans/{id}/deactivate` | Deactivate plan      |
 
 ### Chat (Auth required)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/chat/message` | Send message to AI |
-| POST | `/chat/generate-plan` | Generate financial plan |
-| POST | `/chat/suggest-goals` | Get AI goal suggestions |
+
+| Method | Endpoint              | Description             |
+| ------ | --------------------- | ----------------------- |
+| POST   | `/chat/message`       | Send message to AI      |
+| POST   | `/chat/generate-plan` | Generate financial plan |
+| POST   | `/chat/suggest-goals` | Get AI goal suggestions |
 
 ### Analytics (Auth required)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/analytics/cash-flow` | Cash flow data |
-| GET | `/analytics/spending-by-category` | Spending breakdown |
-| GET | `/analytics/budget-comparison` | Budget vs actual |
-| GET | `/analytics/savings-progress` | Goal progress |
+
+| Method | Endpoint                          | Description        |
+| ------ | --------------------------------- | ------------------ |
+| GET    | `/analytics/cash-flow`            | Cash flow data     |
+| GET    | `/analytics/spending-by-category` | Spending breakdown |
+| GET    | `/analytics/budget-comparison`    | Budget vs actual   |
+| GET    | `/analytics/savings-progress`     | Goal progress      |
 
 ## Prerequisites
 

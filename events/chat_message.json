@@ -1,18 +1,18 @@
 {
-    "body": "{\"message\": \"How can I save more money?\", \"include_financial_context\": true}",
-    "headers": {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
-    },
-    "httpMethod": "POST",
-    "isBase64Encoded": false,
-    "path": "/chat/message",
-    "requestContext": {
-        "stage": "dev",
-        "authorizer": {
-            "claims": {
-                "sub": "test-user-id-123"
-            }
-        }
+  "body": "{\"message\": \"How can I save more money?\", \"include_financial_context\": true}",
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+  },
+  "httpMethod": "POST",
+  "isBase64Encoded": false,
+  "path": "/chat/message",
+  "requestContext": {
+    "stage": "dev",
+    "authorizer": {
+      "claims": {
+        "sub": "test-user-id-123"
+      }
     }
+  }
 }
