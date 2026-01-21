@@ -1,0 +1,16 @@
+{
+  "Parameters": {
+    "ENVIRONMENT": "local",
+    "COGNITO_USER_POOL_ID": "local-user-pool",
+    "COGNITO_CLIENT_ID": "local-client-id",
+    "USERS_TABLE": "saverr-users-local",
+    "ACCOUNTS_TABLE": "saverr-accounts-local",
+    "TRANSACTIONS_TABLE": "saverr-transactions-local",
+    "GOALS_TABLE": "saverr-goals-local",
+    "PLANS_TABLE": "saverr-plans-local",
+    "BUDGETS_TABLE": "saverr-budgets-local",
+    "CHAT_HISTORY_TABLE": "saverr-chat-history-local",
+    "PLAID_SECRET_ARN": "",
+    "BEDROCK_MODEL_ID": "anthropic.claude-3-sonnet-20240229-v1:0"
+  }
+}

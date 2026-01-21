@@ -1,0 +1,12 @@
+{
+  "Parameters": {
+    "Environment": "prod",
+    "PlaidEnvironment": "production",
+    "DomainName": ""
+  },
+  "Tags": {
+    "Environment": "prod",
+    "Project": "Saverr",
+    "ManagedBy": "SAM"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/accounts/link-token"
+    },
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "test-user-123"
+        }
+      }
+    }
+  },
+  "headers": {
+    "content-type": "application/json",
+    "authorization": "Bearer test-jwt-token"
+  },
+  "body": "{}"
+}

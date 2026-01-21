@@ -1,0 +1,12 @@
+{
+  "Parameters": {
+    "Environment": "dev",
+    "PlaidEnvironment": "sandbox",
+    "DomainName": ""
+  },
+  "Tags": {
+    "Environment": "dev",
+    "Project": "Saverr",
+    "ManagedBy": "SAM"
+  }
+}

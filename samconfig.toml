@@ -1,0 +1,106 @@
+# SAM CLI Configuration
+# Run: sam deploy --guided for first time deployment
+# 
+# Usage:
+#   Development:  sam deploy --config-env dev
+#   Staging:      sam deploy --config-env staging
+#   Production:   sam deploy --config-env prod
+
+version = 0.1
+
+#############################################
+# Default Configuration
+#############################################
+[default.deploy.parameters]
+stack_name = "saverr-api"
+resolve_s3 = true
+s3_prefix = "saverr-api"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_NAMED_IAM"
+parameter_overrides = "Environment=\"dev\""
+
+[default.build.parameters]
+use_container = true
+cached = true
+
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+
+#############################################
+# Development Environment
+#############################################
+[dev]
+[dev.global.parameters]
+stack_name = "saverr-api-dev"
+
+[dev.build.parameters]
+use_container = true
+cached = true
+parallel = true
+
+[dev.deploy.parameters]
+stack_name = "saverr-api-dev"
+resolve_s3 = true
+s3_prefix = "saverr-api-dev"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_NAMED_IAM"
+parameter_overrides = "Environment=\"dev\" PlaidEnvironment=\"sandbox\""
+tags = "Environment=\"dev\" Project=\"Saverr\" ManagedBy=\"SAM\""
+disable_rollback = true
+
+[dev.local_start_api.parameters]
+warm_containers = "EAGER"
+port = 3000
+host = "127.0.0.1"
+
+[dev.sync.parameters]
+watch = true
+
+#############################################
+# Staging Environment
+#############################################
+[staging]
+[staging.global.parameters]
+stack_name = "saverr-api-staging"
+
+[staging.build.parameters]
+use_container = true
+cached = true
+parallel = true
+
+[staging.deploy.parameters]
+stack_name = "saverr-api-staging"
+resolve_s3 = true
+s3_prefix = "saverr-api-staging"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_NAMED_IAM"
+parameter_overrides = "Environment=\"staging\" PlaidEnvironment=\"development\""
+tags = "Environment=\"staging\" Project=\"Saverr\" ManagedBy=\"SAM\""
+disable_rollback = false
+
+#############################################
+# Production Environment
+#############################################
+[prod]
+[prod.global.parameters]
+stack_name = "saverr-api-prod"
+
+[prod.build.parameters]
+use_container = true
+cached = true
+parallel = true
+
+[prod.deploy.parameters]
+stack_name = "saverr-api-prod"
+resolve_s3 = true
+s3_prefix = "saverr-api-prod"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_NAMED_IAM"
+parameter_overrides = "Environment=\"prod\" PlaidEnvironment=\"production\""
+tags = "Environment=\"prod\" Project=\"Saverr\" ManagedBy=\"SAM\""
+disable_rollback = false
+fail_on_empty_changeset = false

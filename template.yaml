@@ -1,0 +1,1029 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Saverr API Infrastructure
+  Complete serverless backend with Cognito authentication, API Gateway, Lambda, and DynamoDB
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment name
+
+  DomainName:
+    Type: String
+    Default: ""
+    Description: Custom domain name for the API (optional)
+
+  PlaidEnvironment:
+    Type: String
+    Default: sandbox
+    AllowedValues:
+      - sandbox
+      - development
+      - production
+    Description: Plaid API environment
+
+Conditions:
+  HasCustomDomain: !Not [!Equals [!Ref DomainName, ""]]
+  IsProd: !Equals [!Ref Environment, prod]
+
+Globals:
+  Function:
+    Runtime: python3.11
+    Timeout: 30
+    MemorySize: 256
+    Tracing: Active
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        COGNITO_USER_POOL_ID: !Ref CognitoUserPool
+        COGNITO_CLIENT_ID: !Ref CognitoUserPoolClient
+        USERS_TABLE: !Ref UsersTable
+        ACCOUNTS_TABLE: !Ref AccountsTable
+        TRANSACTIONS_TABLE: !Ref TransactionsTable
+        GOALS_TABLE: !Ref GoalsTable
+        PLANS_TABLE: !Ref PlansTable
+        BUDGETS_TABLE: !Ref BudgetsTable
+        CHAT_HISTORY_TABLE: !Ref ChatHistoryTable
+        PLAID_SECRET_ARN: !Ref PlaidSecretArn
+        BEDROCK_MODEL_ID: anthropic.claude-3-sonnet-20240229-v1:0
+
+Resources:
+  #############################################
+  # Cognito User Pool for Authentication
+  #############################################
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub saverr-users-${Environment}
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      MfaConfiguration: OPTIONAL
+      EnabledMfas:
+        - SOFTWARE_TOKEN_MFA
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 7
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+          AttributeDataType: String
+        - Name: name
+          Required: false
+          Mutable: true
+          AttributeDataType: String
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
+      UserPoolAddOns:
+        AdvancedSecurityMode: !If [IsProd, ENFORCED, AUDIT]
+      DeletionProtection: !If [IsProd, ACTIVE, INACTIVE]
+      UserPoolTags:
+        Environment: !Ref Environment
+        Application: Saverr
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub saverr-app-${Environment}
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      PreventUserExistenceErrors: ENABLED
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+      SupportedIdentityProviders:
+        - COGNITO
+      ReadAttributes:
+        - email
+        - name
+        - email_verified
+      WriteAttributes:
+        - email
+        - name
+
+  #############################################
+  # API Gateway
+  #############################################
+  ApiGateway:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Environment
+      Description: !Sub Saverr API - ${Environment}
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Amz-Date
+          - X-Api-Key
+          - X-Amz-Security-Token
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        MaxAge: 600
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            AuthorizationScopes:
+              - email
+              - openid
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}
+              audience:
+                - !Ref CognitoUserPoolClient
+
+  #############################################
+  # DynamoDB Tables
+  #############################################
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saverr-users-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: email-index
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  AccountsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saverr-accounts-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  TransactionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saverr-transactions-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: date-index
+          KeySchema:
+            - AttributeName: pk
+              KeyType: HASH
+            - AttributeName: date
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  GoalsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saverr-goals-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  PlansTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saverr-plans-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  BudgetsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saverr-budgets-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  ChatHistoryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub saverr-chat-history-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  #############################################
+  # Secrets Manager for Plaid Credentials
+  #############################################
+  PlaidSecretArn:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub saverr/plaid/${Environment}
+      Description: Plaid API credentials for Saverr
+      SecretString: !Sub |
+        {
+          "client_id": "PLACEHOLDER_CLIENT_ID",
+          "secret": "PLACEHOLDER_SECRET",
+          "environment": "${PlaidEnvironment}"
+        }
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  #############################################
+  # IAM Role for Lambda Functions
+  #############################################
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub saverr-lambda-role-${Environment}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt UsersTable.Arn
+                  - !GetAtt AccountsTable.Arn
+                  - !GetAtt TransactionsTable.Arn
+                  - !GetAtt GoalsTable.Arn
+                  - !GetAtt PlansTable.Arn
+                  - !GetAtt BudgetsTable.Arn
+                  - !GetAtt ChatHistoryTable.Arn
+                  - !Sub ${UsersTable.Arn}/index/*
+                  - !Sub ${TransactionsTable.Arn}/index/*
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref PlaidSecretArn
+        - PolicyName: CognitoAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cognito-idp:AdminGetUser
+                  - cognito-idp:GetUser
+                  - cognito-idp:AdminInitiateAuth
+                Resource: !GetAtt CognitoUserPool.Arn
+        - PolicyName: BedrockAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource: "*"
+
+  #############################################
+  # Auth Lambda Functions (No Auth Required)
+  #############################################
+  LoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-auth-login-${Environment}
+      Handler: login.handler
+      CodeUri: lambdas/auth/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /auth/login
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  SignupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-auth-signup-${Environment}
+      Handler: signup.handler
+      CodeUri: lambdas/auth/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /auth/signup
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  ConfirmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-auth-confirm-${Environment}
+      Handler: confirm.handler
+      CodeUri: lambdas/auth/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /auth/confirm
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  ResendCodeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-auth-resend-code-${Environment}
+      Handler: resend_code.handler
+      CodeUri: lambdas/auth/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /auth/resend-code
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  RefreshFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-auth-refresh-${Environment}
+      Handler: refresh.handler
+      CodeUri: lambdas/auth/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /auth/refresh
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  ForgotPasswordFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-auth-forgot-password-${Environment}
+      Handler: forgot_password.handler
+      CodeUri: lambdas/auth/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /auth/forgot-password
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  ResetPasswordFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-auth-reset-password-${Environment}
+      Handler: reset_password.handler
+      CodeUri: lambdas/auth/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /auth/reset-password
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  #############################################
+  # Account Lambda Functions (Auth Required)
+  #############################################
+  ListAccountsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-accounts-list-${Environment}
+      Handler: list_accounts.handler
+      CodeUri: lambdas/accounts/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /accounts
+            Method: GET
+
+  GetAccountFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-accounts-get-${Environment}
+      Handler: get_account.handler
+      CodeUri: lambdas/accounts/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /accounts/{account_id}
+            Method: GET
+
+  CreateLinkTokenFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-accounts-link-token-${Environment}
+      Handler: create_link_token.handler
+      CodeUri: lambdas/accounts/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      Environment:
+        Variables:
+          PLAID_PRODUCTS: "transactions"
+          PLAID_COUNTRY_CODES: "US"
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /accounts/link-token
+            Method: POST
+
+  LinkAccountFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-accounts-link-${Environment}
+      Handler: link_account.handler
+      CodeUri: lambdas/accounts/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /accounts/link
+            Method: POST
+
+  DeleteAccountFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-accounts-delete-${Environment}
+      Handler: delete_account.handler
+      CodeUri: lambdas/accounts/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /accounts/{account_id}
+            Method: DELETE
+
+  RefreshAccountFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-accounts-refresh-${Environment}
+      Handler: refresh_account.handler
+      CodeUri: lambdas/accounts/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /accounts/{account_id}/refresh
+            Method: POST
+
+  GetTransactionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-accounts-transactions-${Environment}
+      Handler: get_transactions.handler
+      CodeUri: lambdas/accounts/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /accounts/{account_id}/transactions
+            Method: GET
+
+  SyncTransactionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-accounts-sync-${Environment}
+      Handler: sync_transactions.handler
+      CodeUri: lambdas/accounts/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 120
+      MemorySize: 512
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /accounts/{account_id}/sync
+            Method: POST
+
+  #############################################
+  # Goals Lambda Functions
+  #############################################
+  ListGoalsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-goals-list-${Environment}
+      Handler: list_goals.handler
+      CodeUri: lambdas/goals/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /goals
+            Method: GET
+
+  CreateGoalFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-goals-create-${Environment}
+      Handler: create_goal.handler
+      CodeUri: lambdas/goals/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /goals
+            Method: POST
+
+  GetGoalFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-goals-get-${Environment}
+      Handler: get_goal.handler
+      CodeUri: lambdas/goals/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /goals/{goal_id}
+            Method: GET
+
+  UpdateGoalFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-goals-update-${Environment}
+      Handler: update_goal.handler
+      CodeUri: lambdas/goals/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /goals/{goal_id}
+            Method: PUT
+
+  DeleteGoalFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-goals-delete-${Environment}
+      Handler: delete_goal.handler
+      CodeUri: lambdas/goals/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /goals/{goal_id}
+            Method: DELETE
+
+  ContributeGoalFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-goals-contribute-${Environment}
+      Handler: contribute_to_goal.handler
+      CodeUri: lambdas/goals/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /goals/{goal_id}/contribute
+            Method: POST
+
+  #############################################
+  # Plans Lambda Functions
+  #############################################
+  ListPlansFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-plans-list-${Environment}
+      Handler: list_plans.handler
+      CodeUri: lambdas/plans/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /plans
+            Method: GET
+
+  CreatePlanFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-plans-create-${Environment}
+      Handler: create_plan.handler
+      CodeUri: lambdas/plans/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /plans
+            Method: POST
+
+  DeactivatePlanFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-plans-deactivate-${Environment}
+      Handler: deactivate_plan.handler
+      CodeUri: lambdas/plans/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /plans/{plan_id}/deactivate
+            Method: PUT
+
+  #############################################
+  # Chat Lambda Functions
+  #############################################
+  SendMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-chat-message-${Environment}
+      Handler: send_message.handler
+      CodeUri: lambdas/chat/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      MemorySize: 512
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /chat/message
+            Method: POST
+
+  GeneratePlanFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-chat-generate-plan-${Environment}
+      Handler: generate_plan.handler
+      CodeUri: lambdas/chat/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 90
+      MemorySize: 512
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /chat/generate-plan
+            Method: POST
+
+  SuggestGoalsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-chat-suggest-goals-${Environment}
+      Handler: suggest_goals.handler
+      CodeUri: lambdas/chat/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      MemorySize: 512
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /chat/suggest-goals
+            Method: POST
+
+  #############################################
+  # Analytics Lambda Functions
+  #############################################
+  GetCashFlowFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-analytics-cashflow-${Environment}
+      Handler: get_cash_flow.handler
+      CodeUri: lambdas/analytics/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /analytics/cash-flow
+            Method: GET
+
+  GetSpendingByCategoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-analytics-spending-${Environment}
+      Handler: get_spending_by_category.handler
+      CodeUri: lambdas/analytics/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /analytics/spending-by-category
+            Method: GET
+
+  GetBudgetComparisonFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-analytics-budget-${Environment}
+      Handler: get_budget_comparison.handler
+      CodeUri: lambdas/analytics/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /analytics/budget-comparison
+            Method: GET
+
+  GetSavingsProgressFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub saverr-analytics-savings-${Environment}
+      Handler: get_savings_progress.handler
+      CodeUri: lambdas/analytics/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ApiGateway
+            Path: /analytics/savings-progress
+            Method: GET
+
+  #############################################
+  # CloudWatch Alarms
+  #############################################
+  ApiGateway5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: IsProd
+    Properties:
+      AlarmName: !Sub saverr-api-5xx-errors-${Environment}
+      AlarmDescription: Alarm when API returns 5xx errors
+      MetricName: 5xx
+      Namespace: AWS/ApiGateway
+      Dimensions:
+        - Name: ApiId
+          Value: !Ref ApiGateway
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+
+  LambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: IsProd
+    Properties:
+      AlarmName: !Sub saverr-lambda-errors-${Environment}
+      AlarmDescription: Alarm when Lambda functions have errors
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub saverr-*-${Environment}
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiEndpoint
+
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref CognitoUserPool
+    Export:
+      Name: !Sub ${AWS::StackName}-UserPoolId
+
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref CognitoUserPoolClient
+    Export:
+      Name: !Sub ${AWS::StackName}-UserPoolClientId
+
+  UserPoolArn:
+    Description: Cognito User Pool ARN
+    Value: !GetAtt CognitoUserPool.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-UserPoolArn
+
+  UsersTableName:
+    Description: Users DynamoDB Table Name
+    Value: !Ref UsersTable
+
+  AccountsTableName:
+    Description: Accounts DynamoDB Table Name
+    Value: !Ref AccountsTable
+
+  TransactionsTableName:
+    Description: Transactions DynamoDB Table Name
+    Value: !Ref TransactionsTable
+
+  GoalsTableName:
+    Description: Goals DynamoDB Table Name
+    Value: !Ref GoalsTable
+
+  PlansTableName:
+    Description: Plans DynamoDB Table Name
+    Value: !Ref PlansTable

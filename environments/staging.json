@@ -1,0 +1,12 @@
+{
+  "Parameters": {
+    "Environment": "staging",
+    "PlaidEnvironment": "development",
+    "DomainName": ""
+  },
+  "Tags": {
+    "Environment": "staging",
+    "Project": "Saverr",
+    "ManagedBy": "SAM"
+  }
+}

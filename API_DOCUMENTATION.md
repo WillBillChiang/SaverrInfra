@@ -169,6 +169,47 @@ Initiate account linking process (integrates with Plaid or similar service).
 }
 ```
 
+### POST /accounts/link-token
+Create a Plaid Link token for initializing Plaid Link on the client.
+
+**Request:**
+```json
+{
+  "access_token": "access-sandbox-xxx"  // Optional: for update mode only
+}
+```
+
+**Response:**
+```json
+{
+  "link_token": "link-sandbox-af1a0311-da53-4636-b754-dd15cc058176",
+  "expiration": "2026-01-21T16:00:00Z",
+  "request_id": "Xvl8u4GlpK9UVmo"
+}
+```
+
+### POST /accounts/{account_id}/sync
+Sync transactions from Plaid for a specific account.
+
+**Path Parameters:**
+- `account_id` (required): UUID of the account
+
+**Query Parameters:**
+- `days` (optional): Number of days to sync (default: 30, max: 730)
+- `use_sync` (optional): Use /transactions/sync API (default: true)
+
+**Response:**
+```json
+{
+  "synced": 150,
+  "added": 145,
+  "modified": 3,
+  "removed": 2,
+  "has_more": false,
+  "cursor": "next_cursor_value"
+}
+```
+
 ### DELETE /accounts/{account_id}
 Unlink a bank account.
 

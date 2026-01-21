@@ -1,0 +1,12 @@
+{
+    "body": "{\"email\": \"test@example.com\", \"password\": \"TestPassword123!\"}",
+    "headers": {
+        "Content-Type": "application/json"
+    },
+    "httpMethod": "POST",
+    "isBase64Encoded": false,
+    "path": "/auth/login",
+    "requestContext": {
+        "stage": "dev"
+    }
+}

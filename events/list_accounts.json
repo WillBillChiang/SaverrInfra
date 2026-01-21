@@ -1,0 +1,16 @@
+{
+    "headers": {
+        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+    },
+    "httpMethod": "GET",
+    "isBase64Encoded": false,
+    "path": "/accounts",
+    "requestContext": {
+        "stage": "dev",
+        "authorizer": {
+            "claims": {
+                "sub": "test-user-id-123"
+            }
+        }
+    }
+}

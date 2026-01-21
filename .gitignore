@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# SAM Build
+.aws-sam/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.*
+*.local
+
+# AWS
+samconfig.toml.bak
+
+# Testing
+coverage/
+.nyc_output/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Secrets (never commit)
+secrets.json
+credentials.json
+*secret*
+*credential*
+
+# Local DynamoDB
+.dynamodb/
